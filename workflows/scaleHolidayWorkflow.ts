@@ -1,48 +1,51 @@
 import { DefineWorkflow, Schema } from "deno-slack-sdk/mod.ts";
 import { SendMessage } from "../functions/sendMessage.ts";
 
-async function getInfoHoliday() {
-  const year = new Date().getFullYear();
-  const response = await fetch(
-    "https://brasilapi.com.br/api/feriados/v1/" + year,
-  );
-  const holidays = await response.json();
+async function getHolidayInfo() {
+  const holidays = [
+    { "date": "2024-01-20", "name": "São Sebastião" },
+    { "date": "2024-02-13", "name": "Carnaval" },
+    { "date": "2024-03-29", "name": "Paixão" },
+    { "date": "2024-04-21", "name": "Tiradentes" },
+    { "date": "2024-05-01", "name": "Dia do Trabalho" },
+    { "date": "2024-05-30", "name": "Corpus Christi" },
+    { "date": "2024-07-25", "name": "Dia do Colono e Motorista" },
+    { "date": "2024-09-07", "name": "Independência do Brasil" },
+    { "date": "2024-09-20", "name": "Revolução Farroupilha" },
+    { "date": "2024-11-02", "name": "Finados" },
+    { "date": "2024-11-15", "name": "Proclamação da República" },
+    { "date": "2024-11-20", "name": "Dia da Consciência Negra" },
+    { "date": "2024-12-25", "name": "Natal" },
+  ];
 
-  let infoIsHoliday = {
-    isHoliday: false,
-    holidayName: "",
-    holidayDate: "",
-  };
-  const today = new Date(2024, 4, 30);
-  console.log("Hoje: ", today.toLocaleDateString());
-  for (const holiday of holidays) {
+  let textScaleHoliday = "";
+  const today = new Date(2024, 6, 25);
+
+  for await (const holiday of holidays) {
     const holidayDate = new Date(holiday.date);
 
     if (
       holidayDate.getUTCDate() == today.getUTCDate() &&
       holidayDate.getUTCMonth() == today.getUTCMonth()
     ) {
-      infoIsHoliday = {
-        isHoliday: true,
-        holidayName: holiday.name,
-        holidayDate: today.toLocaleDateString(),
-      };
+      textScaleHoliday =
+        `Bom dia super time <!here> segue listinha pra registrar nossas jornadas de H.E pro feriado dia ${today.toLocaleDateString()} (${holiday.name})
+   06h as 15h -
+   09h as 18h -
+   13h as 22h -
+   13h as 22h -
+   22h as 06h -
+  Se tiver mais gente interessado, eu vejo a viabilidade de liberar mais H.Es`;
       break;
     }
   }
-  console.log(infoIsHoliday);
-  return infoIsHoliday;
+  return textScaleHoliday;
 }
 
-/**
- * A workflow is a set of steps that are executed in order.
- * Each step in a workflow is a function.
- * https://api.slack.com/automation/workflows
- */
-const SubmitIssueWorkflow = DefineWorkflow({
-  callback_id: "submit_issue",
-  title: "Submit an issue",
-  description: "Submit an issue to the channel",
+const ScaleHolidayWorkflow = DefineWorkflow({
+  callback_id: "scale_holiday",
+  title: "Submit a scale holiday",
+  description: "Submit a scale holiday",
   input_parameters: {
     properties: {
       channel: {
@@ -53,34 +56,20 @@ const SubmitIssueWorkflow = DefineWorkflow({
   },
 });
 
-const infoHoliday = await getInfoHoliday();
+const textScaleHoliday = await getHolidayInfo();
 
-if (infoHoliday.isHoliday) {
-  SubmitIssueWorkflow.addStep(
+console.log("Antes do IF");
+if (textScaleHoliday !== "") {
+  console.log("Dentro do IF, adicionando o step");
+
+  ScaleHolidayWorkflow.addStep(
     SendMessage,
     {
-      channel: SubmitIssueWorkflow.inputs.channel,
-      message: "",
+      channel: ScaleHolidayWorkflow.inputs.channel,
+      message: textScaleHoliday,
     },
   );
 }
+console.log("Depois do IF");
 
-/**
- * Custom functions are reusable building blocks
- * of automation deployed to Slack infrastructure. They
- * accept inputs, perform calculations, and provide
- * outputs, just like typical programmatic functions.
- * https://api.slack.com/automation/functions/custom
- */
-// SubmitIssueWorkflow.addStep(
-//   PostIssueMessage,
-//   {
-//     channel: SubmitIssueWorkflow.inputs.channel,
-//     submitting_user: inputForm.outputs.interactivity.interactor.id,
-//     severity: inputForm.outputs.fields.severity,
-//     description: inputForm.outputs.fields.description,
-//     link: inputForm.outputs.fields.link,
-//   },
-// );
-
-export default SubmitIssueWorkflow;
+export default ScaleHolidayWorkflow;
